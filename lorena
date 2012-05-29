@@ -1,0 +1,347 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+import sys
+import os
+import subprocess
+from PyQt4 import QtCore, QtGui, uic
+from PyQt4.phonon import Phonon
+import sqlite3 as lite
+from xml.etree import cElementTree as ET
+import multiprocessing
+import resources
+
+class ProgressBarWindow(QtGui.QDialog):
+    def __init__(self, existDb, title, text, statusBar, tableWidget, lblMovie, graphicsView, parent=None):
+        QtGui.QDialog.__init__(self, parent)
+        self.existDb = existDb
+        self.setWindowTitle(title)
+        self.setWindowModality(QtCore.Qt.WindowModal)
+        self.progressbar = QtGui.QProgressBar()
+        self.lblText = QtGui.QLabel(text)
+        self.lblStatus = QtGui.QLabel("Loading game list, please wait...")
+        self.lblStatus.setMinimumSize(240,16)
+        self.pgIcon = QtGui.QLabel()
+        self.pgIcon.setPixmap(QtGui.QPixmap("ui/pixmaps/mameicon.png"))
+        self.btnAbort = QtGui.QPushButton("Abort")
+        self.btnAbort.setAutoDefault(False)
+        buttonBox = QtGui.QDialogButtonBox()
+        buttonBox.addButton(self.btnAbort, QtGui.QDialogButtonBox.RejectRole)
+        pgLayout = QtGui.QGridLayout()
+        pgLayout.addWidget(self.pgIcon, 0, 0)
+        pgLayout.addWidget(self.lblText, 0, 1)
+        pgLayout.addWidget(self.progressbar, 1, 1)
+        pgLayout.addWidget(self.lblStatus, 3, 1)
+        pgLayout.addWidget(buttonBox, 4, 1)
+        self.setLayout(pgLayout)
+        self.btnAbort.clicked.connect(self.dialogClose)
+        self.show()
+        scene = self.buildGamelist(statusBar, tableWidget, lblMovie, graphicsView)
+        return scene
+
+    def buildGamelist(self, statusBar, tableWidget, lblMovie, graphicsView):
+        item = 0
+        col = 0
+        lin = 0
+        tableline = 0
+        self.dialogClosed = False
+        if not self.existDb:
+            dataBase().createDb()
+        total = Mame().mameExec('-ll | wc -l')
+        self.progressbar.setMinimum(1)
+        self.progressbar.setMaximum(int(total))
+
+        scene = QtGui.QGraphicsScene()
+        tableWidget.setColumnCount(7)
+        tableWidget.setHorizontalHeaderLabels(["Game", "Name", "Year", "Manufacturer", "Last Played", "Play Count", "Rating"])
+        hitem = QtGui.QTableWidgetItem("Game")
+        hitem.setTextAlignment(QtCore.Qt.AlignLeft)
+        tableWidget.setHorizontalHeaderItem(0, hitem)
+        hitem = QtGui.QTableWidgetItem("Name")
+        hitem.setTextAlignment(QtCore.Qt.AlignLeft)
+        tableWidget.setHorizontalHeaderItem(1, hitem)
+        hitem = QtGui.QTableWidgetItem("Manufacturer")
+        hitem.setTextAlignment(QtCore.Qt.AlignLeft)
+        tableWidget.setHorizontalHeaderItem(3, hitem)
+
+        tableWidget.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        tableWidget.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+        tableWidget.setRowCount(int(total) - 1)
+        db = dataBase() 
+        db.open()
+        db.startTransaction()
+        for xmlresult in Mame().getGameList():
+            item += 1
+            self.progressbar.setValue(item)
+            self.lblStatus.setText("Updating: " + xmlresult[4][:20] + "...")
+            if self.dialogClosed:
+                break
+            QtCore.QCoreApplication.processEvents()
+
+            if os.path.isfile("/home/junix/.mame/roms/" + xmlresult[0] + ".zip"):
+                gamestatus = True
+            else:
+                gamestatus = False
+
+            if not self.existDb:
+                sql = """INSERT INTO game (name, sourcefile, cloneof, romof, description, year, manufacturer, picture, video, playcount, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+                db.insert(sql, [xmlresult[0], xmlresult[1], xmlresult[2], xmlresult[3], xmlresult[4], xmlresult[5], xmlresult[6], xmlresult[0] + ".png", xmlresult[0] + ".mng", 0, gamestatus])
+
+            #gamestdout = Mame().mameExec("-verifyroms", xmlresult[0])
+            #errcheck = gamestdout.find("is good") >= 0
+            #if errcheck:
+
+            tbitem = QtGui.QTableWidgetItem(tableline)            
+            if gamestatus:
+                tbitem.setIcon(QtGui.QIcon(QtGui.QPixmap("ui/pixmaps/ok.png")))
+                tbitem.setText(str(xmlresult[4]))
+            else:
+                tbitem.setIcon(QtGui.QIcon(QtGui.QPixmap("ui/pixmaps/error.png")))
+                tbitem.setText(str(xmlresult[4]))
+            tbitem.setTextAlignment(QtCore.Qt.AlignLeft)
+            tableWidget.setItem(tableline, 0, tbitem)
+            tbitem = QtGui.QTableWidgetItem(str(xmlresult[0]))
+            tbitem.setTextAlignment(QtCore.Qt.AlignLeft)
+            tableWidget.setItem(tableline, 1, tbitem)
+            tbitem = QtGui.QTableWidgetItem(str(xmlresult[5]))
+            tbitem.setTextAlignment(QtCore.Qt.AlignHCenter)
+            tableWidget.setItem(tableline, 2, tbitem)
+            tbitem = QtGui.QTableWidgetItem(str(repr(xmlresult[6]))[1:-1])
+            tbitem.setTextAlignment(QtCore.Qt.AlignLeft)
+            tableWidget.setItem(tableline, 3, tbitem)
+            tbitem = QtGui.QTableWidgetItem("")
+            tbitem.setTextAlignment(QtCore.Qt.AlignHCenter)
+            tableWidget.setItem(tableline, 4, tbitem)
+            tbitem = QtGui.QTableWidgetItem("0")
+            tbitem.setTextAlignment(QtCore.Qt.AlignHCenter)
+            tableWidget.setItem(tableline, 5, tbitem)
+            tbitem = QtGui.QTableWidgetItem("")
+            tbitem.setTextAlignment(QtCore.Qt.AlignHCenter)
+            tableWidget.setItem(tableline, 6, tbitem)
+
+            tableline += 1
+
+            if gamestatus:
+                gamepicture = xmlresult[0] + ".png"
+                picture = "/home/junix/.mame/snap/" + gamepicture
+                if not os.path.isfile(picture):
+                    picture = "ui/pixmaps/nopic.png"
+                spicture = QtGui.QPixmap(picture).scaled(238, 174, QtCore.Qt.IgnoreAspectRatio)
+                color = QtGui.QColor(0, 0, 0, 0)
+                pix = QtGui.QPixmap(QtCore.QSize(238, 174))
+                pix.fill(color)
+                rect = QtCore.QRectF(0.0, 0.0, 238, 174)
+                painter = QtGui.QPainter()
+                painter.begin(pix)
+                painter.setRenderHints(QtGui.QPainter.Antialiasing, True)
+                path = QtGui.QPainterPath()
+                path.addRoundedRect(rect, 8.0, 8.0)
+                painter.drawPath(path)
+                brush = QtGui.QBrush()
+                brush.setTexture(QtGui.QPixmap(spicture))
+                painter.fillPath(path, brush)
+                painter.end()
+                pixItem = GameItem(item, str(xmlresult[4]), pix, str(xmlresult[0]), None, scene, lblMovie)
+                pixItem.setPos((260 * col + 20), lin + 20)
+                col += 1
+                if col >= 6:
+                    lin += 230
+                    col = 0
+
+        tableWidget.resizeColumnsToContents()
+
+        graphicsView.setViewportMargins(20,20,20,20)
+        graphicsView.setScene(scene)
+        graphicsView.setAlignment(QtCore.Qt.AlignLeft)
+
+        db.commit()
+        db.close()
+        self.close()
+
+    def dialogClose(self):
+        self.close
+        QtCore.QCoreApplication.processEvents()
+        self.dialogClosed = True
+
+class Init(QtGui.QMainWindow):
+    def __init__(self):
+        super(Init, self).__init__()
+        self.initUI()
+        
+    def initUI(self):
+        uic.loadUi(os.path.join(os.getcwd(), "ui/lory.ui"), self)
+        if not os.path.isfile('lory.db'):
+            QtGui.QMessageBox.about(self, "Lorena", "Lorena needs to update the game database from MAME.\n\nThis process may take a few minutes to complete.")
+            existDb = False
+        else:
+            existDb = True
+        pgbarWindow = ProgressBarWindow(existDb, "Lorena", "Generating Mame game list...", self.statusBar, self.tableWidget, self.lblMovie, self.graphicsView)
+        self.show()
+        
+        Mame().populateLibrary(self.trLibraries)
+        
+        self.actionList_View.triggered.connect(self.checkTabView)
+        self.actionScreen_View.triggered.connect(self.checkScreenView)
+
+    def checkTabView(self):
+        if self.actionList_View.isChecked():
+            self.tableWidget.show()
+        else:
+            self.tableWidget.hide()
+
+    def checkScreenView(self):
+        if self.actionScreen_View.isChecked():
+            self.graphicsView.show()
+        else:
+            self.graphicsView.hide()
+
+class Mame():
+    def mameExec(self, parameter1, parameter2=None):
+        mamebin = os.popen("/usr/bin/which mame").read()
+        if not mamebin:
+            msgbox = QtGui.QMessageBox.about(QtGui.QWidget(), "Lorena", "Error on execute shell command.\n\nThere is no Mame binary file.\n")
+            sys.exit(1)
+
+        if parameter2:
+            command = subprocess.Popen([mamebin.strip(), parameter1, parameter2], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            (standardout, standarderr) = command.communicate()
+        else:
+            standardout = os.popen(mamebin.strip() + " " + parameter1).read()
+        return standardout
+
+    def populateLibrary(self, trLibraries):
+        # populate category
+        trLibraries.clear()
+        querylib = dataBase().queryLibrary()
+        for l in querylib:
+            item = QtGui.QTreeWidgetItem(trLibraries)
+            item.setText(0, l[1])
+
+    def getNodetext(self, elem,node_name,default_value=None):
+        node = elem.find(node_name)
+        if node == None:
+            return default_value
+        return node.text
+
+    def xmlParse(self, xmllist):
+        doc = ET.ElementTree(ET.fromstring(xmllist))
+        game_nodes = doc.getroot().findall("game")
+        for game_node in game_nodes:
+            name = game_node.attrib.get("name",None)
+            sourcefile = game_node.attrib.get("sourcefile",None)
+            cloneof = game_node.attrib.get("cloneof",None)
+            romof = game_node.attrib.get("romof",None)
+            description = self.getNodetext(game_node,"description","")
+            year = self.getNodetext(game_node,"year","")
+            manufacturer = self.getNodetext(game_node,"manufacturer","")
+            xmlresult = [name, sourcefile, cloneof, romof, description, year, manufacturer]            
+        return xmlresult
+
+    def getGameList(self, params = ""):
+        strxml_gamelist = self.mameExec("-lx -norc " + params)
+        xmldoc_gamelist = ET.ElementTree(ET.fromstring(strxml_gamelist))
+        for game_node in xmldoc_gamelist.getroot().findall("game"):
+            yield [game_node.attrib.get("name",None), game_node.attrib.get("sourcefile",None), game_node.attrib.get("cloneof",None), game_node.attrib.get("romof",None), self.getNodetext(game_node,"description",""), self.getNodetext(game_node,"year",""), self.getNodetext(game_node,"manufacturer","")]
+
+class dataBase():
+    def open(self):
+        try:
+            self.con = lite.connect("lory.db")
+
+        except lite.Error, e:
+            print "Error %s:" % e.args[0]
+            sys.exit(1)
+
+        return self.con
+
+    def startTransaction(self):
+        self.cur = self.con.cursor()
+
+    def commit(self):
+        self.con.commit()
+
+    def rollback(self):
+        self.con.rollback()
+
+    def insert(self, sql, values):
+        self.cur.execute(sql, values)
+
+    def close(self):
+        self.con.close() 
+
+    def createDb(self):
+        con = self.open()
+        with con:
+            # Create a library of games table
+            cur_libname = con.cursor()
+            cur_libname.execute("CREATE TABLE libraryname (id INTEGER PRIMARY KEY ASC, name TEXT)")
+            cur_libname.execute("INSERT INTO libraryname (name) VALUES ('Recently Played')")
+            cur_libname.execute("INSERT INTO libraryname (name) VALUES ('Top Rated')")
+            cur_libgame = con.cursor()
+            cur_libgame.execute("CREATE TABLE library(id INTEGER PRIMARY KEY ASC, idgame INTEGER, idlibname INTEGER)")
+            
+            # Create a games list table
+            cur_game = con.cursor()
+            cur_game.execute("CREATE TABLE game (id INTEGER PRIMARY KEY ASC, name TEXT, sourcefile TEXT, cloneof TEXT, romof TEXT, description TEXT, year TEXT, manufacturer TEXT, picture TEXT, video TEXT, rating INTEGER, lastplayed DATE, playcount INTEGER, status INTEGER)")
+            con.commit()
+        self.close()
+
+    def queryLibrary(self):
+        # Generate a library
+        con = self.open()
+        cur_lib = con.cursor()
+        cur_lib.execute("SELECT * FROM libraryname")
+        data_lib = cur_lib.fetchall()
+        self.close()
+        return data_lib
+
+    def queryGame(self):
+        # Generate a games list
+        con = self.dbConnection()
+        cur_game = con.cursor()    
+        cur_game.execute("SELECT * FROM game ORDER BY 'description'")
+        data_game = cur_game.fetchall()
+        cur_game.execute("SELECT COUNT(*) FROM game")
+        data_game_count = cur_game.fetchone()
+
+        con.close()
+        return data_game, data_game_count
+
+class GameItem(QtGui.QGraphicsPixmapItem):
+    def __init__(self, idx, name, img, video, parent=None, scene=None, lblMovie=None):
+        super(GameItem, self).__init__(parent, scene)
+        self.idx = idx
+        self.setPixmap(QtGui.QPixmap(img))
+        self.lblMovie = lblMovie
+        self.setToolTip(name)
+        self.video = video + ".mng"
+        self.audio = video + ".mp3"
+        self.sound  = None
+
+    def mousePressEvent(self, event):
+        self.itemSelected(self.idx)
+
+    def itemSelected(self, what):
+        print "item {0} clicked".format(self.idx)
+        self.animateMng("/home/junix/.mame/videos/" + self.video, "/home/junix/.mame/videos/" + self.audio)
+
+    def animateMng(self, video, audio):
+        self.sound = Phonon.createPlayer(Phonon.MusicCategory)
+        self.sound.setCurrentSource(Phonon.MediaSource(audio))
+        self.movie = QtGui.QMovie(os.path.join(os.getcwd(), video), parent=self.lblMovie)
+        self.movie.setCacheMode(QtGui.QMovie.CacheAll)
+        self.lblMovie.setMovie(self.movie)
+        self.sound.play()
+        self.movie.start()
+        self.sound.finished.connect(self.animateFinished)
+
+    def animateFinished(self):
+        self.sound.stop()
+        self.movie.stop()
+
+def main():
+    app = QtGui.QApplication(sys.argv)
+    ex = Init()
+    sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()

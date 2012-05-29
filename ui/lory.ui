@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1148</width>
+    <height>800</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Lorena - Mame Frontend</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="lory.src">
+    <normaloff>:/newPrefix/pixmaps/mameicon.png</normaloff>:/newPrefix/pixmaps/mameicon.png</iconset>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QLabel" name="label">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+          <property name="pixmap">
+           <pixmap resource="lory.src">:/newPrefix/pixmaps/zoom-fit.png</pixmap>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEdit">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>230</width>
+            <height>27</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>230</width>
+            <height>27</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string/>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">color: rgb(216, 216, 216);</string>
+          </property>
+          <property name="text">
+           <string>search</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QTreeWidget" name="trLibraries">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>224</width>
+          <height>224</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>288</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <column>
+         <property name="text">
+          <string>Categories</string>
+         </property>
+        </column>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="lblMovie">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>288</width>
+          <height>288</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>288</width>
+          <height>288</height>
+         </size>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Plain</enum>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="0" column="1">
+     <widget class="QSplitter" name="splitter">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <widget class="QGraphicsView" name="graphicsView">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">background-color: rgb(46, 46, 46);</string>
+       </property>
+       <property name="sceneRect">
+        <rectf>
+         <x>0.000000000000000</x>
+         <y>0.000000000000000</y>
+         <width>0.000000000000000</width>
+         <height>0.000000000000000</height>
+        </rectf>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+       </property>
+      </widget>
+      <widget class="QTableWidget" name="tableWidget">
+       <property name="editTriggers">
+        <set>QAbstractItemView::NoEditTriggers</set>
+       </property>
+       <property name="alternatingRowColors">
+        <bool>true</bool>
+       </property>
+       <property name="selectionMode">
+        <enum>QAbstractItemView::ContiguousSelection</enum>
+       </property>
+       <property name="showGrid">
+        <bool>false</bool>
+       </property>
+       <property name="gridStyle">
+        <enum>Qt::NoPen</enum>
+       </property>
+       <property name="wordWrap">
+        <bool>false</bool>
+       </property>
+       <attribute name="horizontalHeaderCascadingSectionResizes">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="horizontalHeaderDefaultSectionSize">
+        <number>100</number>
+       </attribute>
+       <attribute name="horizontalHeaderHighlightSections">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderVisible">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderDefaultSectionSize">
+        <number>17</number>
+       </attribute>
+       <attribute name="verticalHeaderMinimumSectionSize">
+        <number>17</number>
+       </attribute>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1148</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu_File">
+    <property name="title">
+     <string>&amp;File</string>
+    </property>
+    <addaction name="action_Play"/>
+    <addaction name="separator"/>
+    <addaction name="action_Exit"/>
+   </widget>
+   <addaction name="menu_File"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>16</width>
+     <height>16</height>
+    </size>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionPlay"/>
+   <addaction name="separator"/>
+   <addaction name="actionAdd_Library"/>
+   <addaction name="separator"/>
+   <addaction name="actionFull_Screen"/>
+   <addaction name="separator"/>
+   <addaction name="actionScreen_View"/>
+   <addaction name="actionList_View"/>
+  </widget>
+  <action name="action_Exit">
+   <property name="text">
+    <string>&amp;Exit</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+X</string>
+   </property>
+  </action>
+  <action name="actionPlay">
+   <property name="icon">
+    <iconset resource="lory.src">
+     <normaloff>:/newPrefix/pixmaps/media-playback-start.png</normaloff>:/newPrefix/pixmaps/media-playback-start.png</iconset>
+   </property>
+   <property name="text">
+    <string>Play</string>
+   </property>
+   <property name="toolTip">
+    <string>Play current game</string>
+   </property>
+  </action>
+  <action name="actionAdd_Library">
+   <property name="icon">
+    <iconset resource="lory.src">
+     <normaloff>:/newPrefix/pixmaps/add.png</normaloff>:/newPrefix/pixmaps/add.png</iconset>
+   </property>
+   <property name="text">
+    <string>Add Library</string>
+   </property>
+   <property name="toolTip">
+    <string>Add library item</string>
+   </property>
+  </action>
+  <action name="actionFull_Screen">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="lory.src">
+     <normaloff>:/newPrefix/pixmaps/view-fullscreen.png</normaloff>:/newPrefix/pixmaps/view-fullscreen.png</iconset>
+   </property>
+   <property name="text">
+    <string>Full Screen</string>
+   </property>
+   <property name="toolTip">
+    <string>Play in full screen</string>
+   </property>
+  </action>
+  <action name="action_Play">
+   <property name="text">
+    <string>&amp;Play</string>
+   </property>
+  </action>
+  <action name="actionScreen_View">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="lory.src">
+     <normaloff>:/newPrefix/pixmaps/grid.png</normaloff>:/newPrefix/pixmaps/grid.png</iconset>
+   </property>
+   <property name="text">
+    <string>Screen View</string>
+   </property>
+   <property name="toolTip">
+    <string>Screen view</string>
+   </property>
+  </action>
+  <action name="actionList_View">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="lory.src">
+     <normaloff>:/newPrefix/pixmaps/list.png</normaloff>:/newPrefix/pixmaps/list.png</iconset>
+   </property>
+   <property name="text">
+    <string>List View</string>
+   </property>
+   <property name="toolTip">
+    <string>List view</string>
+   </property>
+  </action>
+ </widget>
+ <tabstops>
+  <tabstop>trLibraries</tabstop>
+ </tabstops>
+ <resources>
+  <include location="lory.src"/>
+ </resources>
+ <connections>
+  <connection>
+   <sender>action_Exit</sender>
+   <signal>activated()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>532</x>
+     <y>367</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

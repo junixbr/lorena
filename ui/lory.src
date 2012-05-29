@@ -1,0 +1,13 @@
+<RCC>
+  <qresource prefix="newPrefix">
+    <file>pixmaps/grid.png</file>
+    <file>pixmaps/list.png</file>
+    <file>pixmaps/mameicon.png</file>
+    <file>pixmaps/add.png</file>
+    <file>pixmaps/system-shutdown.png</file>
+    <file>pixmaps/view-fullscreen.png</file>
+    <file>pixmaps/view-restore.png</file>
+    <file>pixmaps/zoom-fit.png</file>
+    <file>pixmaps/media-playback-start.png</file>
+  </qresource>
+</RCC>
