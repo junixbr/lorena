@@ -1,5 +1,22 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
+####
+# Project Lorena
+# A Mame (mamedev.org) frontend.
+#
+# Copyright © 2012 Lorena Project Team
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published
+# by the Free Software Foundation; version 2 only.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+####
+
 import sys
 import os
 import subprocess
@@ -7,11 +24,21 @@ from PyQt4 import QtCore, QtGui, uic
 from PyQt4.phonon import Phonon
 import sqlite3 as lite
 from xml.etree import cElementTree as ET
+import xml.dom.minidom
 import multiprocessing
 import resources
+import settings
+import string
+
+CONFIG_DIR  = os.path.expanduser("~/.lorena/")
+if not os.path.isdir(CONFIG_DIR):
+    os.makedirs(CONFIG_DIR)
+CONFIG_FILE = os.path.join(CONFIG_DIR, "lorena.conf")
+CONFS = []
+ROM = ""
 
 class ProgressBarWindow(QtGui.QDialog):
-    def __init__(self, existDb, title, text, statusBar, tableWidget, lblMovie, graphicsView, parent=None):
+    def __init__(self, existDb, title, text, statusBar, tableWidget, graphicsView, videoPlayer, parent=None):
         QtGui.QDialog.__init__(self, parent)
         self.existDb = existDb
         self.setWindowTitle(title)
@@ -35,10 +62,10 @@ class ProgressBarWindow(QtGui.QDialog):
         self.setLayout(pgLayout)
         self.btnAbort.clicked.connect(self.dialogClose)
         self.show()
-        scene = self.buildGamelist(statusBar, tableWidget, lblMovie, graphicsView)
+        scene = self.buildGamelist(statusBar, tableWidget, graphicsView, videoPlayer)
         return scene
 
-    def buildGamelist(self, statusBar, tableWidget, lblMovie, graphicsView):
+    def buildGamelist(self, statusBar, tableWidget, graphicsView, videoPlayer):
         item = 0
         col = 0
         lin = 0
@@ -46,7 +73,7 @@ class ProgressBarWindow(QtGui.QDialog):
         self.dialogClosed = False
         if not self.existDb:
             dataBase().createDb()
-        total = Mame().mameExec('-ll | wc -l')
+        total = Mame().mameExec("-ll | wc -l")
         self.progressbar.setMinimum(1)
         self.progressbar.setMaximum(int(total))
 
@@ -77,7 +104,7 @@ class ProgressBarWindow(QtGui.QDialog):
                 break
             QtCore.QCoreApplication.processEvents()
 
-            if os.path.isfile("/home/junix/.mame/roms/" + xmlresult[0] + ".zip"):
+            if os.path.isfile(CONFS[11] + "/" + xmlresult[0] + ".zip"):
                 gamestatus = True
             else:
                 gamestatus = False
@@ -122,7 +149,7 @@ class ProgressBarWindow(QtGui.QDialog):
 
             if gamestatus:
                 gamepicture = xmlresult[0] + ".png"
-                picture = "/home/junix/.mame/snap/" + gamepicture
+                picture = CONFS[12] + "/" + gamepicture
                 if not os.path.isfile(picture):
                     picture = "ui/pixmaps/nopic.png"
                 spicture = QtGui.QPixmap(picture).scaled(238, 174, QtCore.Qt.IgnoreAspectRatio)
@@ -140,7 +167,7 @@ class ProgressBarWindow(QtGui.QDialog):
                 brush.setTexture(QtGui.QPixmap(spicture))
                 painter.fillPath(path, brush)
                 painter.end()
-                pixItem = GameItem(item, str(xmlresult[4]), pix, str(xmlresult[0]), None, scene, lblMovie)
+                pixItem = GameItem(self, item, str(xmlresult[4]), pix, str(xmlresult[0]), None, scene, videoPlayer)
                 pixItem.setPos((260 * col + 20), lin + 20)
                 col += 1
                 if col >= 6:
@@ -168,44 +195,166 @@ class Init(QtGui.QMainWindow):
         self.initUI()
         
     def initUI(self):
+        global CONFS
+        CONFS = self.readConf(CONFIG_FILE)
+    
         uic.loadUi(os.path.join(os.getcwd(), "ui/lory.ui"), self)
         if not os.path.isfile('lory.db'):
             QtGui.QMessageBox.about(self, "Lorena", "Lorena needs to update the game database from MAME.\n\nThis process may take a few minutes to complete.")
             existDb = False
         else:
             existDb = True
-        pgbarWindow = ProgressBarWindow(existDb, "Lorena", "Generating Mame game list...", self.statusBar, self.tableWidget, self.lblMovie, self.graphicsView)
+
+        self.videoPlayer = Phonon.VideoPlayer()
+        self.videoPlayer.setMaximumSize(QtCore.QSize(288, 288))
+        self.verticalLayout.addWidget(self.videoPlayer)
+
+        pgbarWindow = ProgressBarWindow(existDb, "Lorena", "Generating Mame game list...", self.statusBar, self.tableWidget, self.graphicsView, self.videoPlayer)
+
         self.show()
-        
+
         Mame().populateLibrary(self.trLibraries)
-        
-        self.actionList_View.triggered.connect(self.checkTabView)
-        self.actionScreen_View.triggered.connect(self.checkScreenView)
+
+        self.actionFullScreen.triggered.connect(self.fullScreen)
+        self.actionListView.triggered.connect(self.checkTabView)
+        self.actionScreenView.triggered.connect(self.checkScreenView)
+        self.actionPreferences.triggered.connect(self.callPreferences)
+        self.actionPlay.triggered.connect(self.playGame)
+        self.actionAbout.triggered.connect(self.about)
+
+    def fullScreen(self):
+        if self.actionFullScreen.isChecked():
+            CONFS[1] = True
+        else:
+            CONFS[1] = False
 
     def checkTabView(self):
-        if self.actionList_View.isChecked():
+        if self.actionListView.isChecked():
             self.tableWidget.show()
         else:
             self.tableWidget.hide()
 
     def checkScreenView(self):
-        if self.actionScreen_View.isChecked():
+        if self.actionScreenView.isChecked():
             self.graphicsView.show()
         else:
             self.graphicsView.hide()
 
+    def callPreferences(self):
+        ex = settings.UiSettings()
+
+    def playGame(self):
+        parameters = ""
+        if CONFS[1] == "False":
+            parameters += "-window "
+        if int(CONFS[2]) > 0:
+            parameters += "-scalemode " + CONFS[2] + " "
+        if CONFS[3] == "True":
+            parameters += "-autoframeskip "
+        if int(CONFS[4]) > -1:
+            parameters += "-frameskip " + CONFS[4] + " "
+        if CONFS[5] == "True":
+            parameters += "-throttle "
+        if int(CONFS[5]) > -1:
+            parameters += "-effect " + CONFS[5] + " "
+        if not CONFS[8] == "True":
+            parameters += "-skip_gameinfo "
+        if CONFS[9] == "False":
+            parameters += "-nojoystick,"
+        if os.path.exists(os.path.expanduser(CONFS[11])):
+            #os.path.isdir(CONFS[11]):
+            parameters += "-rompath " + CONFS[11]
+
+        parameters += " "
+        if ROM == "":
+            msgbox = QtGui.QMessageBox.warning(self, "Lorena", "There is no Game selected.\nPlease, select a game before to run.")
+        else:
+            mame = Mame()
+            mame.mameExec(parameters + ROM)
+
+    def readConf(self, xmlfile):
+        xml = XMLSettings()
+        try:
+            self.nodeText = xml.parse(xmlfile)
+            return xml.loadConf(xmlfile)
+        except:
+            msgbox = QtGui.QMessageBox.warning(self, "Lorena", "Is not possible to load the configuration file: %s.\n Check if it exists or if is a valid XML file" % xmlfile)
+
+    def about(self):
+        QtGui.QMessageBox.information(self, self.tr("About Lorena"), self.tr("This Mame (mamedev.org) frontend."))
+
+class XMLSettings():
+    def nodeText(self, node):
+        text = ""
+        for child in node.childNodes:
+            if child.nodeType is child.TEXT_NODE:
+                text += child.data
+            return text
+
+    def parse(self, xmlfile):
+        children_names = []
+        x = xml.dom.minidom.parse(xmlfile)
+        nodes = x.documentElement
+        children1 = [node for node in nodes.childNodes if node.nodeType == x.ELEMENT_NODE]
+
+        for father in children1:
+            children2 = [node for node in father.childNodes if node.nodeType == x.ELEMENT_NODE]
+            for child in children2:
+                children_names.append(child.nodeName + ", " + self.nodeText(child))
+        return (children_names)
+
+    def loadConf(self, xmlfile):
+        try:
+            nodeText = self.parse(xmlfile)
+            for child in nodeText:
+                if child.split(",")[0] == "fullscreen":
+                    fullscreen = string.strip(child.split(",")[1])
+                elif child.split(",")[0] == "scale":
+                    scale = string.strip(child.split(",")[1])
+                elif child.split(",")[0] == "fsautomatic":
+                    fsautomatic = string.strip(child.split(",")[1])
+                elif child.split(",")[0] == "fsmanual":
+                    fsmanual = string.strip(child.split(",")[1])
+                elif child.split(",")[0] == "fseffect":
+                    fseffect = string.strip(child.split(",")[1])
+                elif child.split(",")[0] == "hwspeed":
+                    hwspeed = string.strip(child.split(",")[1])
+                elif child.split(",")[0] == "prspeed":
+                    prspeed = string.strip(child.split(",")[1])
+                elif child.split(",")[0] == "gameinfo":
+                    gameinfo = string.strip(child.split(",")[1])
+                elif child.split(",")[0] == "joystick":
+                    joystick = string.strip(child.split(",")[1])
+                elif child.split(",")[0] == "mamepath":
+                    mamepath = string.strip(child.split(",")[1]).encode("utf8")
+                elif child.split(",")[0] == "rompath":
+                    rompath = string.strip(child.split(",")[1]).encode("utf8")
+                elif child.split(",")[0] == "snappath":
+                    snappath = string.strip(child.split(",")[1]).encode("utf8")
+                elif child.split(",")[0] == "videopath":
+                    videopath = string.strip(child.split(",")[1]).encode("utf8")
+        except:
+            return [False,"","","","","","","","","","","","",""]
+        return [True, fullscreen, scale, fsautomatic, fsmanual, fseffect, hwspeed, prspeed, gameinfo, joystick, mamepath, rompath, snappath, videopath]
+
 class Mame():
-    def mameExec(self, parameter1, parameter2=None):
+    def mameExec(self, parameter1, parameter2=None, parameter3=None):
         mamebin = os.popen("/usr/bin/which mame").read()
         if not mamebin:
-            msgbox = QtGui.QMessageBox.about(QtGui.QWidget(), "Lorena", "Error on execute shell command.\n\nThere is no Mame binary file.\n")
+            msgbox = QtGui.QMessageBox.critical(QtGui.QWidget(), "Lorena", "Error on execute shell command.\n\nThere is no Mame binary file.\n")
             sys.exit(1)
 
-        if parameter2:
-            command = subprocess.Popen([mamebin.strip(), parameter1, parameter2], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            (standardout, standarderr) = command.communicate()
+        if parameter2 and parameter3:
+            command = subprocess.Popen([mamebin.strip(), parameter1, parameter2, parameter3], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        elif parameter2 and not parameter3:
+            command = subprocess.Popen([mamebin.strip(), parameter1, parameter2], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
-            standardout = os.popen(mamebin.strip() + " " + parameter1).read()
+            command = subprocess.Popen(mamebin.strip() + " " + parameter1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        (standardout, standarderr) = command.communicate()
+        
+        if standarderr:
+            msgbox = QtGui.QMessageBox.critical(QtGui.QWidget(), "Lorena", "Error on execute Mame command.\n\n" + standarderr)
         return standardout
 
     def populateLibrary(self, trLibraries):
@@ -237,7 +386,7 @@ class Mame():
         return xmlresult
 
     def getGameList(self, params = ""):
-        strxml_gamelist = self.mameExec("-lx -norc " + params)
+        strxml_gamelist = self.mameExec("-lx", "-norc", params)
         xmldoc_gamelist = ET.ElementTree(ET.fromstring(strxml_gamelist))
         for game_node in xmldoc_gamelist.getroot().findall("game"):
             yield [game_node.attrib.get("name",None), game_node.attrib.get("sourcefile",None), game_node.attrib.get("cloneof",None), game_node.attrib.get("romof",None), self.getNodetext(game_node,"description",""), self.getNodetext(game_node,"year",""), self.getNodetext(game_node,"manufacturer","")]
@@ -307,39 +456,33 @@ class dataBase():
         return data_game, data_game_count
 
 class GameItem(QtGui.QGraphicsPixmapItem):
-    def __init__(self, idx, name, img, video, parent=None, scene=None, lblMovie=None):
+    def __init__(self, window, index, name, img, rom, parent=None, scene=None, videoPlayer=None):
         super(GameItem, self).__init__(parent, scene)
-        self.idx = idx
+        self.idx = index
         self.setPixmap(QtGui.QPixmap(img))
-        self.lblMovie = lblMovie
+        self.videoPlayer = videoPlayer
         self.setToolTip(name)
-        self.video = video + ".mng"
-        self.audio = video + ".mp3"
-        self.sound  = None
+        self.name = rom
+        self.video = rom + ".mp4"
+        self.window = window
 
     def mousePressEvent(self, event):
         self.itemSelected(self.idx)
 
     def itemSelected(self, what):
-        print "item {0} clicked".format(self.idx)
-        self.animateMng("/home/junix/.mame/videos/" + self.video, "/home/junix/.mame/videos/" + self.audio)
-
-    def animateMng(self, video, audio):
-        self.sound = Phonon.createPlayer(Phonon.MusicCategory)
-        self.sound.setCurrentSource(Phonon.MediaSource(audio))
-        self.movie = QtGui.QMovie(os.path.join(os.getcwd(), video), parent=self.lblMovie)
-        self.movie.setCacheMode(QtGui.QMovie.CacheAll)
-        self.lblMovie.setMovie(self.movie)
-        self.sound.play()
-        self.movie.start()
-        self.sound.finished.connect(self.animateFinished)
-
-    def animateFinished(self):
-        self.sound.stop()
-        self.movie.stop()
+        global ROM
+        ROM = self.name
+        url = QtCore.QUrl(CONFS[13] + "/" + self.video)
+        mediaSource = Phonon.MediaSource(url)
+        if self.videoPlayer.isPlaying():
+            self.videoPlayer.stop()
+            self.videoPlayer.play(mediaSource)
+        else:
+            self.videoPlayer.play(mediaSource)
 
 def main():
     app = QtGui.QApplication(sys.argv)
+    app.setApplicationName("Lorena - Mame Frontend")
     ex = Init()
     sys.exit(app.exec_())
 
