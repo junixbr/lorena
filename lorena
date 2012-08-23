@@ -278,7 +278,14 @@ class Init(QtGui.QMainWindow):
             self.nodeText = xml.parse(xmlfile)
             return xml.loadConf(xmlfile)
         except:
-            msgbox = QtGui.QMessageBox.warning(self, "Lorena", "Is not possible to load the configuration file: %s.\n Check if it exists or if is a valid XML file" % xmlfile)
+            msgbox = QtGui.QMessageBox.warning(self, "Lorena", "Configuration file %s does not exist.\n A new one will be created in: ~/.lorena/lorena.conf." % xmlfile)
+            saveConf = settings.SetConf()
+            saveConf.saveZeroConf()
+            try:
+                self.nodeText = xml.parse(xmlfile)
+                return xml.loadConf(xmlfile)
+            except:
+                msgbox = QtGui.QMessageBox.warning(self, "Lorena", "Is not possible to load the configuration file: %s.\n Check if it exists or if is a valid XML file" % xmlfile)
 
     def about(self):
         QtGui.QMessageBox.information(self, self.tr("About Lorena"), self.tr("This Mame (mamedev.org) frontend."))
@@ -467,9 +474,9 @@ class GameItem(QtGui.QGraphicsPixmapItem):
         self.window = window
 
     def mousePressEvent(self, event):
-        self.itemSelected(self.idx)
+        self.itemSelected()
 
-    def itemSelected(self, what):
+    def itemSelected(self):
         global ROM
         ROM = self.name
         url = QtCore.QUrl(CONFS[13] + "/" + self.video)
