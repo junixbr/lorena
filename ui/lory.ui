@@ -134,7 +134,7 @@
         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
        </property>
       </widget>
-      <widget class="QTableWidget" name="tableWidget">
+      <widget class="QTableWidget" name="tblGames">
        <property name="editTriggers">
         <set>QAbstractItemView::NoEditTriggers</set>
        </property>
@@ -142,7 +142,10 @@
         <bool>true</bool>
        </property>
        <property name="selectionMode">
-        <enum>QAbstractItemView::ContiguousSelection</enum>
+        <enum>QAbstractItemView::SingleSelection</enum>
+       </property>
+       <property name="selectionBehavior">
+        <enum>QAbstractItemView::SelectItems</enum>
        </property>
        <property name="showGrid">
         <bool>false</bool>
@@ -182,7 +185,7 @@
      <x>0</x>
      <y>0</y>
      <width>1148</width>
-     <height>21</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">

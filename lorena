@@ -38,7 +38,7 @@ CONFS = []
 ROM = ""
 
 class ProgressBarWindow(QtGui.QDialog):
-    def __init__(self, existDb, title, text, statusBar, tableWidget, graphicsView, videoPlayer, parent=None):
+    def __init__(self, existDb, title, text, statusBar, tblGames, graphicsView, videoPlayer, parent=None):
         QtGui.QDialog.__init__(self, parent)
         self.existDb = existDb
         self.setWindowTitle(title)
@@ -62,14 +62,16 @@ class ProgressBarWindow(QtGui.QDialog):
         self.setLayout(pgLayout)
         self.btnAbort.clicked.connect(self.dialogClose)
         self.show()
-        scene = self.buildGamelist(statusBar, tableWidget, graphicsView, videoPlayer)
+        scene = self.buildGamelist(statusBar, tblGames, graphicsView, videoPlayer)
         return scene
 
-    def buildGamelist(self, statusBar, tableWidget, graphicsView, videoPlayer):
-        item = 0
+    def buildGamelist(self, statusBar, tblGames, graphicsView, videoPlayer):
+        self.item = 0
         col = 0
         lin = 0
         tableline = 0
+        self.videoPlayer = videoPlayer
+        self.tblGames = tblGames
         self.dialogClosed = False
         if not self.existDb:
             dataBase().createDb()
@@ -78,27 +80,27 @@ class ProgressBarWindow(QtGui.QDialog):
         self.progressbar.setMaximum(int(total))
 
         scene = QtGui.QGraphicsScene()
-        tableWidget.setColumnCount(7)
-        tableWidget.setHorizontalHeaderLabels(["Game", "Name", "Year", "Manufacturer", "Last Played", "Play Count", "Rating"])
+        tblGames.setColumnCount(7)
+        tblGames.setHorizontalHeaderLabels(["Game", "Name", "Year", "Manufacturer", "Last Played", "Play Count", "Rating"])
         hitem = QtGui.QTableWidgetItem("Game")
         hitem.setTextAlignment(QtCore.Qt.AlignLeft)
-        tableWidget.setHorizontalHeaderItem(0, hitem)
+        tblGames.setHorizontalHeaderItem(0, hitem)
         hitem = QtGui.QTableWidgetItem("Name")
         hitem.setTextAlignment(QtCore.Qt.AlignLeft)
-        tableWidget.setHorizontalHeaderItem(1, hitem)
+        tblGames.setHorizontalHeaderItem(1, hitem)
         hitem = QtGui.QTableWidgetItem("Manufacturer")
         hitem.setTextAlignment(QtCore.Qt.AlignLeft)
-        tableWidget.setHorizontalHeaderItem(3, hitem)
+        tblGames.setHorizontalHeaderItem(3, hitem)
 
-        tableWidget.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
-        tableWidget.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
-        tableWidget.setRowCount(int(total) - 1)
+        tblGames.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        tblGames.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+        tblGames.setRowCount(int(total) - 1)
         db = dataBase() 
         db.open()
         db.startTransaction()
         for xmlresult in Mame().getGameList():
-            item += 1
-            self.progressbar.setValue(item)
+            self.item += 1
+            self.progressbar.setValue(self.item)
             self.lblStatus.setText("Updating: " + xmlresult[4][:20] + "...")
             if self.dialogClosed:
                 break
@@ -117,37 +119,40 @@ class ProgressBarWindow(QtGui.QDialog):
             #errcheck = gamestdout.find("is good") >= 0
             #if errcheck:
 
-            tbitem = QtGui.QTableWidgetItem(tableline)            
+            tblItem = QtGui.QTableWidgetItem(tableline)            
             if gamestatus:
-                tbitem.setIcon(QtGui.QIcon(QtGui.QPixmap("ui/pixmaps/ok.png")))
-                tbitem.setText(str(xmlresult[4]))
+                tblItem.setIcon(QtGui.QIcon(QtGui.QPixmap("ui/pixmaps/ok.png")))
+                tblItem.setText(str(xmlresult[4]))
             else:
-                tbitem.setIcon(QtGui.QIcon(QtGui.QPixmap("ui/pixmaps/error.png")))
-                tbitem.setText(str(xmlresult[4]))
-            tbitem.setTextAlignment(QtCore.Qt.AlignLeft)
-            tableWidget.setItem(tableline, 0, tbitem)
-            tbitem = QtGui.QTableWidgetItem(str(xmlresult[0]))
-            tbitem.setTextAlignment(QtCore.Qt.AlignLeft)
-            tableWidget.setItem(tableline, 1, tbitem)
-            tbitem = QtGui.QTableWidgetItem(str(xmlresult[5]))
-            tbitem.setTextAlignment(QtCore.Qt.AlignHCenter)
-            tableWidget.setItem(tableline, 2, tbitem)
-            tbitem = QtGui.QTableWidgetItem(str(repr(xmlresult[6]))[1:-1])
-            tbitem.setTextAlignment(QtCore.Qt.AlignLeft)
-            tableWidget.setItem(tableline, 3, tbitem)
-            tbitem = QtGui.QTableWidgetItem("")
-            tbitem.setTextAlignment(QtCore.Qt.AlignHCenter)
-            tableWidget.setItem(tableline, 4, tbitem)
-            tbitem = QtGui.QTableWidgetItem("0")
-            tbitem.setTextAlignment(QtCore.Qt.AlignHCenter)
-            tableWidget.setItem(tableline, 5, tbitem)
-            tbitem = QtGui.QTableWidgetItem("")
-            tbitem.setTextAlignment(QtCore.Qt.AlignHCenter)
-            tableWidget.setItem(tableline, 6, tbitem)
+                tblItem.setIcon(QtGui.QIcon(QtGui.QPixmap("ui/pixmaps/error.png")))
+                tblItem.setText(str(xmlresult[4]))
+            tblItem.setTextAlignment(QtCore.Qt.AlignLeft)
+            tblGames.setItem(tableline, 0, tblItem)
+            tblItem = QtGui.QTableWidgetItem(str(xmlresult[0]))
+            tblItem.setTextAlignment(QtCore.Qt.AlignLeft)
+            tblGames.setItem(tableline, 1, tblItem)
+            tblItem = QtGui.QTableWidgetItem(str(xmlresult[5]))
+            tblItem.setTextAlignment(QtCore.Qt.AlignHCenter)
+            tblGames.setItem(tableline, 2, tblItem)
+            tblItem = QtGui.QTableWidgetItem(str(repr(xmlresult[6]))[1:-1])
+            tblItem.setTextAlignment(QtCore.Qt.AlignLeft)
+            tblGames.setItem(tableline, 3, tblItem)
+            tblItem = QtGui.QTableWidgetItem("")
+            tblItem.setTextAlignment(QtCore.Qt.AlignHCenter)
+            tblGames.setItem(tableline, 4, tblItem)
+            tblItem = QtGui.QTableWidgetItem("0")
+            tblItem.setTextAlignment(QtCore.Qt.AlignHCenter)
+            tblGames.setItem(tableline, 5, tblItem)
+            tblItem = QtGui.QTableWidgetItem("")
+            tblItem.setTextAlignment(QtCore.Qt.AlignHCenter)
+            tblGames.setItem(tableline, 6, tblItem)
+
 
             tableline += 1
 
             if gamestatus:
+                self.rom = str(xmlresult[0])
+                self.name = str(xmlresult[4])
                 gamepicture = xmlresult[0] + ".png"
                 picture = CONFS[12] + "/" + gamepicture
                 if not os.path.isfile(picture):
@@ -167,14 +172,15 @@ class ProgressBarWindow(QtGui.QDialog):
                 brush.setTexture(QtGui.QPixmap(spicture))
                 painter.fillPath(path, brush)
                 painter.end()
-                pixItem = GameItem(self, item, str(xmlresult[4]), pix, str(xmlresult[0]), None, scene, videoPlayer)
+                pixItem = GameItem(self, self.item, self.rom, self.name, pix, None, scene, self.videoPlayer, self.tblGames)
                 pixItem.setPos((260 * col + 20), lin + 20)
                 col += 1
                 if col >= 6:
                     lin += 230
                     col = 0
 
-        tableWidget.resizeColumnsToContents()
+        tblGames.itemClicked.connect(self.gameItemSelect)
+        tblGames.resizeColumnsToContents()
 
         graphicsView.setViewportMargins(20,20,20,20)
         graphicsView.setScene(scene)
@@ -183,6 +189,9 @@ class ProgressBarWindow(QtGui.QDialog):
         db.commit()
         db.close()
         self.close()
+
+    def gameItemSelect(self):
+        TableRow(self.item, self.rom, self.videoPlayer, self.tblGames)
 
     def dialogClose(self):
         self.close
@@ -209,7 +218,7 @@ class Init(QtGui.QMainWindow):
         self.videoPlayer.setMaximumSize(QtCore.QSize(288, 288))
         self.verticalLayout.addWidget(self.videoPlayer)
 
-        pgbarWindow = ProgressBarWindow(existDb, "Lorena", "Generating Mame game list...", self.statusBar, self.tableWidget, self.graphicsView, self.videoPlayer)
+        pgbarWindow = ProgressBarWindow(existDb, "Lorena", "Generating Mame game list...", self.statusBar, self.tblGames, self.graphicsView, self.videoPlayer)
 
         self.show()
 
@@ -230,9 +239,9 @@ class Init(QtGui.QMainWindow):
 
     def checkTabView(self):
         if self.actionListView.isChecked():
-            self.tableWidget.show()
+            self.tblGames.show()
         else:
-            self.tableWidget.hide()
+            self.tblGames.hide()
 
     def checkScreenView(self):
         if self.actionScreenView.isChecked():
@@ -463,22 +472,24 @@ class dataBase():
         return data_game, data_game_count
 
 class GameItem(QtGui.QGraphicsPixmapItem):
-    def __init__(self, window, index, name, img, rom, parent=None, scene=None, videoPlayer=None):
+    def __init__(self, window, index, rom, name, img, parent=None, scene=None, videoPlayer=None, tblGames=None):
         super(GameItem, self).__init__(parent, scene)
+        self.window = window
         self.idx = index
         self.setPixmap(QtGui.QPixmap(img))
         self.videoPlayer = videoPlayer
         self.setToolTip(name)
-        self.name = rom
+        self.name = name
+        self.rom = rom
         self.video = rom + ".mp4"
-        self.window = window
+        self.tblGames = tblGames
 
     def mousePressEvent(self, event):
         self.itemSelected()
 
     def itemSelected(self):
         global ROM
-        ROM = self.name
+        ROM = self.rom
         url = QtCore.QUrl(CONFS[13] + "/" + self.video)
         mediaSource = Phonon.MediaSource(url)
         if self.videoPlayer.isPlaying():
@@ -486,6 +497,23 @@ class GameItem(QtGui.QGraphicsPixmapItem):
             self.videoPlayer.play(mediaSource)
         else:
             self.videoPlayer.play(mediaSource)
+        self.tblGames.selectRow(self.idx -1)
+
+
+class TableRow(QtGui.QTableWidget):
+    def __init__(self, index, rom, videoPlayer=None, tblGames=None, parent=None):
+        super(TableRow, self).__init__(parent)   
+        video = rom + ".mp4"
+        global ROM
+        ROM = rom
+        url = QtCore.QUrl(CONFS[13] + "/" + video)
+        mediaSource = Phonon.MediaSource(url)
+        if videoPlayer.isPlaying():
+            videoPlayer.stop()
+            videoPlayer.play(mediaSource)
+        else:
+            videoPlayer.play(mediaSource)
+
 
 def main():
     app = QtGui.QApplication(sys.argv)
