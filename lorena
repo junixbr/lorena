@@ -184,7 +184,7 @@ class ProgressBarWindow(QtGui.QDialog):
 
         graphicsView.setViewportMargins(20,20,20,20)
         graphicsView.setScene(scene)
-        graphicsView.setAlignment(QtCore.Qt.AlignLeft)
+        graphicsView.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
         db.commit()
         db.close()
@@ -402,6 +402,7 @@ class Mame():
         return xmlresult
 
     def getGameList(self, params = ""):
+        QtCore.QCoreApplication.processEvents()
         strxml_gamelist = self.mameExec("-lx", "-norc", params)
         xmldoc_gamelist = ET.ElementTree(ET.fromstring(strxml_gamelist))
         for game_node in xmldoc_gamelist.getroot().findall("game"):
