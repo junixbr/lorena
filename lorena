@@ -17,9 +17,8 @@
 # GNU General Public License for more details.
 ####
 
-import sys
-import os
-import subprocess
+import sys, os, subprocess
+from sys import platform as _platform
 from PyQt4 import QtCore, QtGui, uic
 from PyQt4.phonon import Phonon
 import sqlite3 as lite
@@ -30,12 +29,20 @@ import resources
 import settings
 import string
 
-CONFIG_DIR  = os.path.expanduser("~/.lorena/")
-if not os.path.isdir(CONFIG_DIR):
-    os.makedirs(CONFIG_DIR)
-CONFIG_FILE = os.path.join(CONFIG_DIR, "lorena.conf")
-CONFS = []
-ROM = ""
+if _platform == "linux" or _platform == "linux2":
+    mamebin = os.popen("/usr/bin/which sdlmame").read()
+    CONFIG_DIR  = os.path.expanduser("~/.lorena/")
+    if not os.path.isdir(CONFIG_DIR):
+        os.makedirs(CONFIG_DIR)
+    CONFIG_FILE = os.path.join(CONFIG_DIR, "lorena.conf")
+    CONFS = []
+    ROM = ""
+elif _platform == "darwin":
+   namebin = '/usr/bin/sdlmame'
+elif _platform == "win32":
+   mamebin = 'c:\mame.exe'
+
+
 
 class ProgressBarWindow(QtGui.QDialog):
     def __init__(self, existDb, title, text, statusBar, tblGames, graphicsView, videoPlayer, parent=None):
@@ -355,7 +362,7 @@ class XMLSettings():
 
 class Mame():
     def mameExec(self, parameter1, parameter2=None, parameter3=None):
-        mamebin = os.popen("/usr/bin/which mame").read()
+        #mamebin = os.popen("/usr/bin/which mame").read()
         if not mamebin:
             msgbox = QtGui.QMessageBox.critical(QtGui.QWidget(), "Lorena", "Error on execute shell command.\n\nThere is no Mame binary file.\n")
             sys.exit(1)
