@@ -17,8 +17,9 @@
 # GNU General Public License for more details.
 ####
 
-import sys, os, subprocess
-from sys import platform as _platform
+import sys
+import os
+import subprocess
 from PyQt4 import QtCore, QtGui, uic
 from PyQt4.phonon import Phonon
 import sqlite3 as lite
@@ -28,21 +29,29 @@ import multiprocessing
 import resources
 import settings
 import string
+import platform
 
-if _platform == "linux" or _platform == "linux2":
-    mamebin = os.popen("/usr/bin/which sdlmame").read()
+
+# Check Operation System
+sysos = platform.system()
+if sysos == "Linux" or "linux2":
+    # Set path for sdlame or mame
+    mamebin = os.popen("which sdlmame").read()
+    if not mamebin:
+	mamebin = os.popen("which mame").read()
     CONFIG_DIR  = os.path.expanduser("~/.lorena/")
     if not os.path.isdir(CONFIG_DIR):
         os.makedirs(CONFIG_DIR)
     CONFIG_FILE = os.path.join(CONFIG_DIR, "lorena.conf")
     CONFS = []
     ROM = ""
-elif _platform == "darwin":
+elif sysos == "darwin":
    namebin = '/usr/bin/sdlmame'
-elif _platform == "win32":
+elif sysos == "win32":
    mamebin = 'c:\mame.exe'
-
-
+else:
+    print 'Unknown Operation system'
+    sys.exit(1)
 
 class ProgressBarWindow(QtGui.QDialog):
     def __init__(self, existDb, title, text, statusBar, tblGames, graphicsView, videoPlayer, parent=None):
@@ -102,7 +111,7 @@ class ProgressBarWindow(QtGui.QDialog):
         tblGames.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         tblGames.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
         tblGames.setRowCount(int(total) - 1)
-        db = dataBase() 
+        db = dataBase()
         db.open()
         db.startTransaction()
         for xmlresult in Mame().getGameList():
@@ -126,7 +135,7 @@ class ProgressBarWindow(QtGui.QDialog):
             #errcheck = gamestdout.find("is good") >= 0
             #if errcheck:
 
-            tblItem = QtGui.QTableWidgetItem(tableline)            
+            tblItem = QtGui.QTableWidgetItem(tableline)
             if gamestatus:
                 tblItem.setIcon(QtGui.QIcon(QtGui.QPixmap("ui/pixmaps/ok.png")))
                 tblItem.setText(str(xmlresult[4]))
@@ -209,11 +218,11 @@ class Init(QtGui.QMainWindow):
     def __init__(self):
         super(Init, self).__init__()
         self.initUI()
-        
+
     def initUI(self):
         global CONFS
         CONFS = self.readConf(CONFIG_FILE)
-    
+
         uic.loadUi(os.path.join(os.getcwd(), "ui/lory.ui"), self)
         if not os.path.isfile('lory.db'):
             QtGui.QMessageBox.about(self, "Lorena", "Lorena needs to update the game database from MAME.\n\nThis process may take a few minutes to complete.")
@@ -373,9 +382,9 @@ class Mame():
             command = subprocess.Popen([mamebin.strip(), parameter1, parameter2], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
             command = subprocess.Popen(mamebin.strip() + " " + parameter1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        
+
         (standardout, standarderr) = command.communicate()
-        
+
         if standarderr:
             msgbox = QtGui.QMessageBox.critical(QtGui.QWidget(), "Lorena", "Error on execute Mame command.\n\n" + standarderr)
         return standardout
@@ -405,7 +414,7 @@ class Mame():
             description = self.getNodetext(game_node,"description","")
             year = self.getNodetext(game_node,"year","")
             manufacturer = self.getNodetext(game_node,"manufacturer","")
-            xmlresult = [name, sourcefile, cloneof, romof, description, year, manufacturer]            
+            xmlresult = [name, sourcefile, cloneof, romof, description, year, manufacturer]
         return xmlresult
 
     def getGameList(self, params = ""):
@@ -439,7 +448,7 @@ class dataBase():
         self.cur.execute(sql, values)
 
     def close(self):
-        self.con.close() 
+        self.con.close()
 
     def createDb(self):
         con = self.open()
@@ -451,7 +460,7 @@ class dataBase():
             cur_libname.execute("INSERT INTO libraryname (name) VALUES ('Top Rated')")
             cur_libgame = con.cursor()
             cur_libgame.execute("CREATE TABLE library(id INTEGER PRIMARY KEY ASC, idgame INTEGER, idlibname INTEGER)")
-            
+
             # Create a games list table
             cur_game = con.cursor()
             cur_game.execute("CREATE TABLE game (id INTEGER PRIMARY KEY ASC, name TEXT, sourcefile TEXT, cloneof TEXT, romof TEXT, description TEXT, year TEXT, manufacturer TEXT, picture TEXT, video TEXT, rating INTEGER, lastplayed DATE, playcount INTEGER, status INTEGER)")
@@ -470,7 +479,7 @@ class dataBase():
     def queryGame(self):
         # Generate a games list
         con = self.dbConnection()
-        cur_game = con.cursor()    
+        cur_game = con.cursor()
         cur_game.execute("SELECT * FROM game ORDER BY 'description'")
         data_game = cur_game.fetchall()
         cur_game.execute("SELECT COUNT(*) FROM game")
@@ -510,7 +519,7 @@ class GameItem(QtGui.QGraphicsPixmapItem):
 
 class TableRow(QtGui.QTableWidget):
     def __init__(self, index, rom, videoPlayer=None, tblGames=None, parent=None):
-        super(TableRow, self).__init__(parent)   
+        super(TableRow, self).__init__(parent)
         video = rom + ".mp4"
         global ROM
         ROM = rom
